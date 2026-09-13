@@ -28,6 +28,7 @@ public:
     double getCurrentlyUsedParticlesPercentage();
 
     std::optional<double> getT90();
+    
 private: 
     int particleCount;
     int currentTime;

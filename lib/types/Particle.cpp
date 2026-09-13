@@ -43,7 +43,7 @@ void Particle::setYVelocity(double yVelocity) { this->yVelocity = yVelocity; }
 double Particle::getParticleRadius() const { return particleRadius; }
 
 bool Particle::getUsed() const { return used; }
-void Particle::setUsed(bool used) { this->used = used; }
+void Particle::setUsed() { this->used = true; }
 
 void Particle::setMass(double mass) { this->mass = mass; }
 double Particle::getMass() const { return mass; }
@@ -54,8 +54,9 @@ int Particle::getCellXIndex() const { return cellXIndex; }
 void Particle::setCellYIndex(int cellYIndex) { this->cellYIndex = cellYIndex; }
 int Particle::getCellYIndex() const { return cellYIndex; }
 
-void advance(double dt) {
-    // TODO
+void Particle::advance(double dt) {
+    this->setXLocation(this->getXLocation() + this->getXVelocity() * dt);
+    this->setYLocation(this->getYLocation() + this->getYVelocity() * dt);
 }
 
 std::string Particle::toString() const {

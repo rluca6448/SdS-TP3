@@ -34,7 +34,7 @@ public:
     double getMass() const;
 
     bool getUsed() const;
-    void setUsed(bool used);
+    void setUsed();
 
     void setCellXIndex(int cellXIndex);
     int getCellXIndex() const;

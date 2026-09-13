@@ -1,26 +1,26 @@
 #pragma once
 
 #include "types/EventType.h"
+#include "types/Side.h"
 
 namespace types {
 
-class Event {
-public:
-    bool operator<(const Event& other) const;
-
-private:
-    double type;
+struct Event {
+    double time;
     types::EventType type;
-    
-    double radius;
 
     int particleId;
-    int otherId;
-
-    int snapshotCollisionCountA;
-    int snapshotCollisionCountB;
-
-    int creationTime;
+    int otherId; 
     
+    int snapshotCollisionCountA;
+    int snapshotCollisionCountB;  
+
+    types::Side side;             
+};
+
+struct EventComparator {
+    bool operator()(const Event& a, const Event& b) const {
+        return a.time > b.time;
+    }
 };
 }
