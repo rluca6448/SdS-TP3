@@ -13,7 +13,7 @@ public:
 
     void rebuild(std::vector<types::Particle>& particles);
 
-    std::vector<types::Particle*> neighborsOf(const types::Particle& p) const;
+    std::vector<types::Particle*> neighboursOf(const types::Particle& p) const;
 
 private:
     double cellSizeX_;

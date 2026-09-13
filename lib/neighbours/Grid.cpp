@@ -26,7 +26,7 @@ void Grid::rebuild(std::vector<types::Particle>& particles) {
     }
 }
 
-std::vector<types::Particle*> Grid::neighborsOf(const types::Particle& p) const {
+std::vector<types::Particle*> Grid::neighboursOf(const types::Particle& p) const {
     std::vector<types::Particle*> result;
     int cx = p.getCellXIndex();
     int cy = p.getCellYIndex();
