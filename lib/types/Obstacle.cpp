@@ -4,6 +4,21 @@
 
 namespace types {
 
+Obstacle::Obstacle(double x, double y, double radius)
+    : x(x), y(y), radius(radius) {}
+
+double Obstacle::getX() const {
+    return x;
+}
+
+double Obstacle::getY() const {
+    return y;
+}
+
+double Obstacle::getRadius() const {
+    return radius;
+}
+
 double Obstacle::timeToCollision(types::Particle particle) {
     double xDist = particle.getXLocation() - this->x;
     double yDist = particle.getYLocation() - this->y;
@@ -27,12 +42,16 @@ double Obstacle::timeToCollision(types::Particle particle) {
         return INFINITY;
     }
 
+    if (b >= 0.0) {
+        return INFINITY;
+    }
+
     double sqrtDisc = sqrt(disc);
     double r1 = (-b - sqrtDisc) / (2 * a);
     double r2 = (-b + sqrtDisc) / (2 * a);
 
-    if (r1 > 0) return r1;
-    if (r2 > 0) return r2;
+    if (r1 > 0.0) return r1;
+    if (r2 > 0.0) return r2;
 
     return INFINITY;
 }

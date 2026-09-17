@@ -13,7 +13,10 @@ class StateWriter {
 public:
     void open(std::string path);
 
-    void writeState(std::vector<types::Particle>& particles, double time);
+    void writeState(const std::vector<types::Particle>& particles, double time);
+    void writeStateImmediately(
+        const std::vector<types::Particle>& particles,
+        double time);
 
     void close();
 

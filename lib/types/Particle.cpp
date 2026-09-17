@@ -3,14 +3,15 @@
 namespace types {
 
 namespace {
+constexpr double PI = 3.14159265358979323846;
     thread_local std::mt19937 velocityRng{std::random_device{}()};
 }
 
 Particle::Particle(int id, double x, double y, double particleRadius)
     : id(id), particleRadius(particleRadius), used(false), x(x), y(y) {
 
-    double speed = 0.03;
-    std::uniform_real_distribution<double> angleDist(0.0, 2 * M_PI);
+    double speed = 1.0;
+    std::uniform_real_distribution<double> angleDist(0.0, 2 * PI);
     double theta = angleDist(velocityRng);
     this->xVelocity = speed * std::cos(theta);
     this->yVelocity = speed * std::sin(theta);
@@ -19,8 +20,8 @@ Particle::Particle(int id, double x, double y, double particleRadius)
 Particle::Particle(int id, double x, double y)
     : id(id), used(false), x(x), y(y), particleRadius(0.0) {
     
-    double speed = 0.03;
-    std::uniform_real_distribution<double> angleDist(0.0, 2 * M_PI);
+    double speed = 1.0;
+    std::uniform_real_distribution<double> angleDist(0.0, 2 * PI);
     double theta = angleDist(velocityRng);
     this->xVelocity = speed * std::cos(theta);
     this->yVelocity = speed * std::sin(theta);

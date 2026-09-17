@@ -5,7 +5,6 @@
 #include <cmath>
 #include <random>
 #include <sstream>
-#include <corecrt_math_defines.h>
 
 namespace types {
 

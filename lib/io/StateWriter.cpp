@@ -12,13 +12,21 @@ void StateWriter::open(std::string path) {
     eventCounter = 0;
 }
 
-void StateWriter::writeState(std::vector<types::Particle>& particles, double time) {
+void StateWriter::writeState(
+    const std::vector<types::Particle>& particles,
+    double time) {
     eventCounter++;
 
     if (eventCounter % writeEveryN != 0) {
-        return; 
+        return;
     }
 
+    writeStateImmediately(particles, time);
+}
+
+void StateWriter::writeStateImmediately(
+    const std::vector<types::Particle>& particles,
+    double time) {
     out_ << time << "\n";
 
     for (const auto& p : particles) {

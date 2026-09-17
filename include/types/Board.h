@@ -12,16 +12,20 @@ struct WallCollision {
 
 class Board {
 public:
-    WallCollision timeToWallCollision(types::Particle particle);
+    Board(double length = 1.20, double width = 0.68, double goalpostLength = 0.20);
 
-    void resolveWallCollision(Particle& particle, Side side);
+    WallCollision timeToWallCollision(const types::Particle& particle) const;
 
-    bool isGoal(Particle particle, Side side);
-    
+    void resolveWallCollision(Particle& particle, Side side) const;
+
+    bool isGoal(const Particle& particle, Side side) const;
+
+    double getLength() const;
+    double getWidth() const;
+
 private:
-    int length;
-    int width;
-    int goalpostLength;
-    
+    double length;
+    double width;
+    double goalpostLength;
 };
 }

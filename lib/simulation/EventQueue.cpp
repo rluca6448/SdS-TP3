@@ -21,11 +21,24 @@ types::Event EventQueue::pop() {
     throw std::runtime_error("No valid events in the queue");
 }
 
+types::Event EventQueue::peek() {
+    while (!this->queue.empty() && !this->isValid(this->queue.top())) {
+        this->queue.pop();
+    }
+
+    if (this->queue.empty()) {
+        throw std::runtime_error("No valid events in the queue");
+    }
+
+    return this->queue.top();
+}
+
 bool EventQueue::isValid(types::Event event) {
     if (event.snapshotCollisionCountA != this->collisionCount[event.particleId])
         return false;
 
-    if (event.otherId != -1 &&
+    if (event.type == types::EventType::PARTICLE &&
+        event.otherId != -1 &&
         event.snapshotCollisionCountB != this->collisionCount[event.otherId])
         return false;
 
@@ -34,6 +47,10 @@ bool EventQueue::isValid(types::Event event) {
 
 void EventQueue::incrementCollisionCount(int particleId) {
     this->collisionCount[particleId]++;
+}
+
+int EventQueue::getCollisionCount(int particleId) const {
+    return collisionCount.at(particleId);
 }
 
 }
