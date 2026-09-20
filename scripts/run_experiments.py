@@ -2,6 +2,7 @@ import argparse
 import csv
 import re
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -19,6 +20,21 @@ def parse_result(stdout):
     )
 
 
+def create_animation(state_file, config, animation_dir, fps):
+    animation_file = animation_dir / state_file.with_suffix(".gif").name
+    subprocess.run(
+        [
+            sys.executable,
+            str(Path(__file__).with_name("animate_states.py")),
+            str(state_file),
+            "--config", str(config),
+            "--output", str(animation_file),
+            "--fps", str(fps),
+        ],
+        check=True,
+    )
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--exe", required=True, type=Path)
@@ -27,12 +43,26 @@ def main():
     parser.add_argument("--repetitions", type=int, default=5)
     parser.add_argument("--tmax", type=int, default=100)
     parser.add_argument("--output-dir", type=Path, default=Path("generated/experiments"))
+    parser.add_argument(
+        "--animate",
+        action="store_true",
+        help="genera un GIF por cada realizacion",
+    )
+    parser.add_argument(
+        "--fps",
+        type=int,
+        default=1,
+        help="cuadros por segundo de las animaciones",
+    )
     args = parser.parse_args()
 
     if args.repetitions <= 0:
         raise ValueError("repetitions debe ser positivo")
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
+    animation_dir = args.output_dir / "animations"
+    if args.animate:
+        animation_dir.mkdir(parents=True, exist_ok=True)
     results_path = args.output_dir / "results.csv"
 
     with results_path.open("w", newline="", encoding="utf-8") as results_file:
@@ -64,7 +94,7 @@ def main():
                     start = time.perf_counter()
                     completed = subprocess.run(
                         command,
-                        capture_output=True,
+                        stdout=subprocess.PIPE,
                         text=True,
                         check=True,
                     )
@@ -82,6 +112,8 @@ def main():
                         "state_file": str(state_file),
                     })
                     results_file.flush()
+                    if args.animate:
+                        create_animation(state_file, config, animation_dir, args.fps)
 
 
 if __name__ == "__main__":

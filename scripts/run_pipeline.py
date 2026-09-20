@@ -16,6 +16,11 @@ def python_script(name):
     return [sys.executable, str(ROOT / "scripts" / name)]
 
 
+def count_obstacles(config):
+    with config.open(encoding="utf-8") as config_file:
+        return sum(1 for line in config_file if line.strip())
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Ejecuta el flujo experimental completo del TP3"
@@ -49,6 +54,29 @@ def main():
         action="store_true",
         help="omite las cinco realizaciones de competencia",
     )
+    parser.add_argument(
+        "--animate",
+        action="store_true",
+        help="genera un GIF por cada realizacion",
+    )
+    parser.add_argument(
+        "--fps",
+        type=int,
+        default=2,
+        help="cuadros por segundo de las animaciones",
+    )
+    parser.add_argument(
+        "--new-obstacles",
+        nargs="?",
+        const=3,
+        type=int,
+        default=None,
+        metavar="CANTIDAD",
+        help=(
+            "genera una nueva configuracion aleatoria; si no se indica, "
+            "usa 3 obstaculos"
+        ),
+    )
     args = parser.parse_args()
 
     executable = args.exe if args.exe.is_absolute() else ROOT / args.exe
@@ -76,10 +104,34 @@ def main():
     empty_config = generated_dir / "mesa_vacia.txt"
     empty_config.touch()
 
+    if args.new_obstacles is not None and args.new_obstacles <= 0:
+        raise ValueError("La cantidad de obstaculos debe ser positiva")
+    if args.fps <= 0:
+        raise ValueError("fps debe ser positivo")
+
+    if args.new_obstacles is not None and obstacle_config.exists():
+        obstacle_config.unlink()
+        print(f"Se elimina la configuracion anterior: {obstacle_config}")
+
     if not obstacle_config.exists():
-        print("No existe la configuracion final; se genera una configuracion valida.")
-        run([str(executable), "0", "100", str(obstacle_config),
-             str(generated_dir / "configuration_init.txt")])
+        print("Se genera una nueva configuracion valida de obstaculos.")
+        generate_command = [
+            str(executable), "0", "100", str(obstacle_config),
+            str(generated_dir / "configuration_init.txt"),
+        ]
+        if args.new_obstacles is not None:
+            generate_command.append(str(args.new_obstacles))
+        run(generate_command)
+        generated_count = count_obstacles(obstacle_config)
+        if (
+            args.new_obstacles is not None
+            and generated_count != args.new_obstacles
+        ):
+            raise RuntimeError(
+                "El ejecutable genero una cantidad inesperada de obstaculos: "
+                f"se esperaban {args.new_obstacles}, pero genero "
+                f"{generated_count}. Recompila el ejecutable."
+            )
 
     run(python_script("validate_config.py") + [str(obstacle_config)])
     run(python_script("validate_config.py") + [str(empty_config)])
@@ -97,6 +149,8 @@ def main():
             "--n-values", *[str(value) for value in args.n_values],
             "--repetitions", "10",
             "--tmax", "30",
+            *(["--animate"] if args.animate else []),
+            "--fps", str(args.fps),
             "--output-dir", str(point_11_dir),
         ]
     )
@@ -114,6 +168,8 @@ def main():
             "--n-values", "100",
             "--repetitions", "5",
             "--tmax", "100",
+            *(["--animate"] if args.animate else []),
+            "--fps", str(args.fps),
             "--output-dir", str(point_12_dir),
         ]
     )
@@ -130,6 +186,8 @@ def main():
             + [
                 "--exe", str(executable),
                 "--config", str(obstacle_config),
+                *(["--animate"] if args.animate else []),
+                "--fps", str(args.fps),
                 "--output-dir", str(output_dir / "competition"),
             ]
         )

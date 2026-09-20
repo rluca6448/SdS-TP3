@@ -101,7 +101,9 @@ Simulation::Simulation(
           gridCellCount(boardWidth, particleRadius)),
       queue(particleCount) {}
 
-void Simulation::initialize(const std::string& obstacleConfigPath) {
+void Simulation::initialize(
+    const std::string& obstacleConfigPath,
+    int obstacleCount) {
     if (this->initialized) {
         throw std::logic_error("Simulation can only be initialized once");
     }
@@ -118,7 +120,7 @@ void Simulation::initialize(const std::string& obstacleConfigPath) {
         existingConfig.close();
         this->obstacles = io::ConfigReader::readObstacles(configPath.string());
     } else {
-        this->obstacles = generateObstacles(3);
+        this->obstacles = generateObstacles(obstacleCount);
 
         std::ofstream generatedConfig(configPath);
         if (!generatedConfig) {
@@ -155,7 +157,8 @@ void Simulation::initialize(const std::string& obstacleConfigPath) {
             const double dx = obstacle.getX() - obstacles[j].getX();
             const double dy = obstacle.getY() - obstacles[j].getY();
             const double minimumDistance = radius + obstacles[j].getRadius();
-            if (dx * dx + dy * dy < minimumDistance * minimumDistance) {
+            if (dx * dx + dy * dy <
+                minimumDistance * minimumDistance - EPSILON) {
                 throw std::runtime_error(
                     "La configuracion contiene obstaculos solapados");
             }

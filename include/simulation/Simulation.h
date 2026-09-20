@@ -28,7 +28,9 @@ public:
         double particleRadius = PARTICLE_RADIUS,
         double particleMass = PARTICLE_MASS);
 
-    void initialize(const std::string& obstacleConfigPath = "generated/obstacles.txt");
+    void initialize(
+        const std::string& obstacleConfigPath = "generated/obstacles.txt",
+        int obstacleCount = 3);
 
     void computeInitialCollisionTimes();
 

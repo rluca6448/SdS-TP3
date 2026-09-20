@@ -11,6 +11,10 @@ def mean(values):
     return sum(values) / len(values) if values else None
 
 
+def configuration_label(configuration):
+    return Path(configuration).stem.replace("_", " ").replace("-", " ")
+
+
 def standard_deviation(values):
     if len(values) < 2:
         return 0.0
@@ -158,7 +162,10 @@ def create_plots(grouped_path, diffusion_path, output_dir):
         x = [int(row["N"]) for row in rows]
         y = [float(row["runtime_mean"]) for row in rows]
         error = [float(row["runtime_std"]) for row in rows]
-        plt.errorbar(x, y, yerr=error, marker="o", label=configuration)
+        plt.errorbar(
+            x, y, yerr=error, marker="o",
+            label=configuration_label(configuration),
+        )
     plt.xlabel("N")
     plt.ylabel("Tiempo de ejecucion (s)")
     plt.legend()
@@ -166,21 +173,36 @@ def create_plots(grouped_path, diffusion_path, output_dir):
     plt.savefig(output_dir / "runtime_vs_n.png")
     plt.close()
 
-    plt.figure()
-    for configuration, rows in by_configuration.items():
-        valid = [row for row in rows if row["t90_mean"] not in ("", "None")]
-        if not valid:
-            continue
-        x = [int(row["N"]) for row in valid]
-        y = [float(row["t90_mean"]) for row in valid]
-        error = [float(row["t90_std"]) for row in valid]
-        plt.errorbar(x, y, yerr=error, marker="o", label=configuration)
-    plt.xlabel("N")
-    plt.ylabel("t90 promedio (s)")
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(output_dir / "t90_vs_n.png")
-    plt.close()
+    n_values = {
+        int(row["N"])
+        for rows in by_configuration.values()
+        for row in rows
+    }
+    if len(n_values) > 1:
+        plt.figure()
+        for configuration, rows in by_configuration.items():
+            valid = [
+                row for row in rows
+                if row["t90_mean"] not in ("", "None")
+            ]
+            if not valid:
+                continue
+            valid.sort(key=lambda row: int(row["N"]))
+            x = [int(row["N"]) for row in valid]
+            y = [float(row["t90_mean"]) for row in valid]
+            error = [float(row["t90_std"]) for row in valid]
+            plt.errorbar(
+                x, y, yerr=error, marker="o",
+                label=configuration_label(configuration),
+            )
+        plt.xlabel("N")
+        plt.ylabel("t90 promedio (s)")
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(output_dir / "t90_vs_n.png")
+        plt.close()
+    else:
+        (output_dir / "t90_vs_n.png").unlink(missing_ok=True)
 
     configuration_points = []
     for configuration, rows in by_configuration.items():
@@ -188,7 +210,7 @@ def create_plots(grouped_path, diffusion_path, output_dir):
         if len(valid) == 1:
             row = valid[0]
             configuration_points.append((
-                configuration,
+                configuration_label(configuration),
                 float(row["t90_mean"]),
                 float(row["t90_std"]),
             ))

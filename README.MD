@@ -85,8 +85,24 @@ python scripts/run_experiments.py \
     --tmax 30
 ```
 
+Para generar también una animación GIF por cada realización:
+
+```bash
+python scripts/run_experiments.py \
+    --exe build/sds_tp3 \
+    --config generated/mesa_vacia.txt \
+    --n-values 50 100 200 \
+    --repetitions 10 \
+    --tmax 30 \
+    --animate
+```
+
 El runner genera `generated/experiments/results.csv` y un archivo de estados
-por realización.
+por realización. Con `--animate`, los GIF se guardan en
+`generated/experiments/animations/`, separados de los archivos de estados.
+El pipeline completo también acepta `--animate` para habilitar esta opción en
+todas las realizaciones. La velocidad se puede ajustar con `--fps`; por
+defecto usa `2` cuadros por segundo.
 
 Para el punto 1.1, usar una configuración vacía, al menos 10 realizaciones,
 `tmax=30` y varios valores de `N`:
@@ -135,8 +151,9 @@ python scripts/animate_states.py \
     --config generated/obstacles.txt
 ```
 
-La reproducción usa por defecto `10` cuadros por segundo para que sea más
-lenta. Se puede ajustar con `--fps`, por ejemplo:
+La reproducción usa por defecto `1` cuadro por segundo, avanzando
+aproximadamente de segundo en segundo. Se puede ajustar con `--fps`, por
+ejemplo:
 
 ```bash
 python scripts/animate_states.py \
@@ -176,6 +193,10 @@ t90_by_configuration.png
 diffusion_vs_t90.png
 ```
 
+`t90_vs_n.png` sólo se genera cuando los resultados contienen más de un
+valor de `N`. Si todas las configuraciones usan el mismo `N`, la comparación
+correspondiente se genera en `t90_by_configuration.png`.
+
 Los gráficos requieren `matplotlib`. Los archivos CSV se generan sin
 dependencias externas.
 
@@ -190,11 +211,13 @@ Para ejecutar las cinco realizaciones de la competencia:
 ```bash
 python scripts/run_competition.py \
     --exe build/sds_tp3 \
-    --config generated/obstacles.txt
+    --config generated/obstacles.txt \
+    --animate
 ```
 
 El runner usa `N=100`, `tmax=100 s` y genera los cinco estados junto con
-`generated/competition/competition.csv`. Una configuración sin ningún `t90`
+`generated/competition/competition.csv`. Con `--animate`, los GIF se guardan
+en `generated/competition/animations/`. Una configuración sin ningún `t90`
 alcanzado queda marcada como no exitosa y se informa usando los goles promedio
 a `tmax`.
 
@@ -206,6 +229,45 @@ Para ejecutar automáticamente todos los experimentos y análisis:
 python scripts/run_pipeline.py \
     --exe build/sds_tp3 \
     --obstacle-config generated/obstacles.txt
+```
+
+Para generar una nueva configuración aleatoria de obstáculos antes de ejecutar
+el pipeline:
+
+```bash
+python scripts/run_pipeline.py \
+    --exe build/sds_tp3 \
+    --obstacle-config generated/obstacles.txt \
+    --new-obstacles
+```
+
+También se puede indicar la cantidad:
+
+```bash
+python scripts/run_pipeline.py \
+    --exe build/sds_tp3 \
+    --obstacle-config generated/obstacles.txt \
+    --new-obstacles 5
+```
+
+Sin `--new-obstacles`, se reutiliza la configuración existente. La nueva
+configuración se genera en el archivo indicado por `--obstacle-config`.
+Si se usa la flag sin cantidad, se generan 3 obstáculos.
+Después de modificar el motor C++, hay que recompilarlo antes de usar esta
+opción:
+
+```bash
+cmake --build build --config Release
+```
+
+Para ejecutar el pipeline con animaciones a 5 cuadros por segundo:
+
+```bash
+python scripts/run_pipeline.py \
+    --exe build/sds_tp3 \
+    --obstacle-config generated/obstacles.txt \
+    --animate \
+    --fps 5
 ```
 
 El pipeline ejecuta:

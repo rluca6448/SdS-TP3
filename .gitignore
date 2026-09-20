@@ -109,4 +109,5 @@ generated/obstacles.txt
 Teorica_3.pdf
 TP3_Enunciado.md
 
-/generated/*
+/generated
+__pycache__

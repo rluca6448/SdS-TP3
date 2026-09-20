@@ -3,7 +3,7 @@
 namespace types {
 
 namespace {
-constexpr double PI = 3.14159265358979323846;
+    constexpr double PI = 3.14159265358979323846;
     thread_local std::mt19937 velocityRng{std::random_device{}()};
 }
 
