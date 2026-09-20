@@ -42,10 +42,11 @@ Por ejemplo:
 ```
 
 Si no se indican argumentos, se usan `tmax=100`, `N=100`,
-`generated/obstacles.txt` y `generated/states.txt`.
+`generated/configurations/obstacles1.txt` y `generated/states.txt`.
 
-Al inicializarse, el programa utiliza `generated/obstacles.txt` como configuración de
-obstáculos. Si el archivo no existe, genera una configuración aleatoria válida
+Al inicializarse, el programa utiliza
+`generated/configurations/obstacles1.txt` como configuración de obstáculos.
+Si el archivo no existe, genera una configuración aleatoria válida
 y la guarda allí. Las ejecuciones siguientes cargan ese mismo archivo, por lo
 que utilizan exactamente la misma configuración.
 
@@ -79,7 +80,7 @@ Para ejecutar varias realizaciones:
 ```bash
 python scripts/run_experiments.py \
     --exe build/sds_tp3 \
-    --config generated/mesa_vacia.txt generated/obstacles.txt \
+    --config generated/mesa_vacia.txt generated/configurations/obstacles1.txt \
     --n-values 50 100 200 \
     --repetitions 10 \
     --tmax 30
@@ -122,7 +123,7 @@ comparar contra la mesa vacía:
 ```bash
 python scripts/run_experiments.py \
     --exe build/sds_tp3 \
-    --config generated/mesa_vacia.txt generated/obstacles.txt \
+    --config generated/mesa_vacia.txt generated/configurations/obstacles1.txt \
     --n-values 100 \
     --repetitions 5 \
     --tmax 100
@@ -148,7 +149,7 @@ Para visualizar una simulación:
 ```bash
 python scripts/animate_states.py \
     generated/experiments/obstacles_N100_run1.txt \
-    --config generated/obstacles.txt
+    --config generated/configurations/obstacles1.txt
 ```
 
 La reproducción usa por defecto `1` cuadro por segundo, avanzando
@@ -158,7 +159,7 @@ ejemplo:
 ```bash
 python scripts/animate_states.py \
     generated/experiments/obstacles_N100_run1.txt \
-    --config generated/obstacles.txt \
+    --config generated/configurations/obstacles1.txt \
     --fps 5
 ```
 
@@ -167,7 +168,7 @@ Para guardar la animación como GIF:
 ```bash
 python scripts/animate_states.py \
     generated/experiments/obstacles_N100_run1.txt \
-    --config generated/obstacles.txt \
+    --config generated/configurations/obstacles1.txt \
     --output generated/experiments/animation.gif
 ```
 
@@ -197,13 +198,37 @@ diffusion_vs_t90.png
 valor de `N`. Si todas las configuraciones usan el mismo `N`, la comparación
 correspondiente se genera en `t90_by_configuration.png`.
 
+Para comparar automáticamente varias configuraciones, crear los archivos
+`obstaclesX.txt` dentro de `generated/configurations/`, donde `X` es un
+número de configuración:
+
+```text
+generated/configurations/obstacles1.txt
+generated/configurations/obstacles2.txt
+generated/configurations/obstacles3.txt
+```
+
+Luego ejecutar:
+
+```bash
+python scripts/run_configurations.py --exe build/sds_tp3
+```
+
+El script ejecuta cinco realizaciones con `N=100` y `tmax=100` para cada
+archivo, y genera `results.csv`, `summary.csv` y
+`t90_by_configuration.png` dentro de `generated/configurations/results/`.
+La configuración con menor `t90` promedio entre las que alcanzan `t90` en
+las cinco realizaciones se informa como la mejor. Si ninguna lo alcanza
+siempre, se selecciona la que tenga mayor `Fu(tmax)` promedio. Todas las
+configuraciones originales permanecen dentro de `generated/configurations/`.
+
 Los gráficos requieren `matplotlib`. Los archivos CSV se generan sin
 dependencias externas.
 
 Para validar una configuración de obstáculos:
 
 ```bash
-python scripts/validate_config.py generated/obstacles.txt
+python scripts/validate_config.py generated/configurations/obstacles1.txt
 ```
 
 Para ejecutar las cinco realizaciones de la competencia:
@@ -211,15 +236,30 @@ Para ejecutar las cinco realizaciones de la competencia:
 ```bash
 python scripts/run_competition.py \
     --exe build/sds_tp3 \
-    --config generated/obstacles.txt \
+    --configurations-dir generated/configurations \
     --animate
 ```
 
-El runner usa `N=100`, `tmax=100 s` y genera los cinco estados junto con
-`generated/competition/competition.csv`. Con `--animate`, los GIF se guardan
-en `generated/competition/animations/`. Una configuración sin ningún `t90`
-alcanzado queda marcada como no exitosa y se informa usando los goles promedio
-a `tmax`.
+El runner usa `N=100`, `tmax=100 s` y genera una subcarpeta `configX` por
+cada `obstaclesX.txt`, dentro de `generated/competition/`. Cada subcarpeta
+contiene los cinco estados y su `competition.csv`. Con `--animate`, los GIF
+se guardan dentro de la subcarpeta correspondiente. Una configuración sin
+ningún `t90` alcanzado queda marcada como no exitosa y se informa usando los
+goles promedio a `tmax`.
+
+También se puede generar una configuración nueva al ejecutar directamente la
+competencia:
+
+```bash
+python scripts/run_competition.py \
+    --exe build/sds_tp3 \
+    --configurations-dir generated/configurations \
+    --new-obstacles 3
+```
+
+La nueva configuración se guarda como el siguiente `obstaclesX.txt` libre
+dentro de `generated/configurations/`, y luego se ejecutan todas las
+configuraciones de esa carpeta.
 
 ## Flujo completo del TP
 
@@ -227,8 +267,7 @@ Para ejecutar automáticamente todos los experimentos y análisis:
 
 ```bash
 python scripts/run_pipeline.py \
-    --exe build/sds_tp3 \
-    --obstacle-config generated/obstacles.txt
+    --exe build/sds_tp3
 ```
 
 Para generar una nueva configuración aleatoria de obstáculos antes de ejecutar
@@ -237,7 +276,6 @@ el pipeline:
 ```bash
 python scripts/run_pipeline.py \
     --exe build/sds_tp3 \
-    --obstacle-config generated/obstacles.txt \
     --new-obstacles
 ```
 
@@ -246,13 +284,12 @@ También se puede indicar la cantidad:
 ```bash
 python scripts/run_pipeline.py \
     --exe build/sds_tp3 \
-    --obstacle-config generated/obstacles.txt \
     --new-obstacles 5
 ```
 
-Sin `--new-obstacles`, se reutiliza la configuración existente. La nueva
-configuración se genera en el archivo indicado por `--obstacle-config`.
-Si se usa la flag sin cantidad, se generan 3 obstáculos.
+Sin `--new-obstacles`, se reutilizan todas las configuraciones existentes en
+`generated/configurations/`. Si se usa la flag sin cantidad, se agrega una
+nueva configuración con 3 obstáculos a esa carpeta.
 Después de modificar el motor C++, hay que recompilarlo antes de usar esta
 opción:
 
@@ -265,15 +302,16 @@ Para ejecutar el pipeline con animaciones a 5 cuadros por segundo:
 ```bash
 python scripts/run_pipeline.py \
     --exe build/sds_tp3 \
-    --obstacle-config generated/obstacles.txt \
     --animate \
     --fps 5
 ```
 
 El pipeline ejecuta:
 
-- punto 1.1: mesa vacía, los valores de `N` indicados y 10 realizaciones;
-- puntos 1.2 y 1.3: mesa vacía y configuración final, `N=100` y 5 realizaciones;
+- punto 1.1: mesa vacía (`config0`) y todas las configuraciones, los valores
+  de `N` indicados y 10 realizaciones;
+- puntos 1.2 y 1.3: mesa vacía y todas las configuraciones, `N=100` y 5
+  realizaciones;
 - validación de configuraciones;
 - análisis estadístico, DCM, `D` y gráficos;
 - cinco realizaciones de competencia.

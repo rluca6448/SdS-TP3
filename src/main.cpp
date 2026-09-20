@@ -13,7 +13,7 @@ int main(int argc, char* argv[]) {
         const int maxTime = argc > 1 ? std::stoi(argv[1]) : 100;
         const int particleCount = argc > 2 ? std::stoi(argv[2]) : 100;
         const std::string obstacleConfigPath =
-            argc > 3 ? argv[3] : "generated/obstacles.txt";
+            argc > 3 ? argv[3] : "generated/configurations/obstacles1.txt";
         const std::string outputPath =
             argc > 4 ? argv[4] : "generated/states.txt";
         const int obstacleCount = argc > 5 ? std::stoi(argv[5]) : 3;

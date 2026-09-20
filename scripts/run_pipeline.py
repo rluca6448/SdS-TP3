@@ -1,10 +1,12 @@
 import argparse
+import re
 import subprocess
 import sys
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+CONFIGURATION_PATTERN = re.compile(r"obstacles(\d+)\.txt$")
 
 
 def run(command, cwd=ROOT):
@@ -32,10 +34,10 @@ def main():
         help="ruta al ejecutable C++",
     )
     parser.add_argument(
-        "--obstacle-config",
+        "--configurations-dir",
         type=Path,
-        default=ROOT / "generated" / "obstacles.txt",
-        help="configuracion final de obstaculos",
+        default=ROOT / "generated" / "configurations",
+        help="carpeta con obstaclesX.txt",
     )
     parser.add_argument(
         "--n-values",
@@ -80,10 +82,10 @@ def main():
     args = parser.parse_args()
 
     executable = args.exe if args.exe.is_absolute() else ROOT / args.exe
-    obstacle_config = (
-        args.obstacle_config
-        if args.obstacle_config.is_absolute()
-        else ROOT / args.obstacle_config
+    configurations_dir = (
+        args.configurations_dir
+        if args.configurations_dir.is_absolute()
+        else ROOT / args.configurations_dir
     )
     output_dir = (
         args.output_dir
@@ -99,7 +101,7 @@ def main():
 
     generated_dir = ROOT / "generated"
     generated_dir.mkdir(parents=True, exist_ok=True)
-    obstacle_config.parent.mkdir(parents=True, exist_ok=True)
+    configurations_dir.mkdir(parents=True, exist_ok=True)
 
     empty_config = generated_dir / "mesa_vacia.txt"
     empty_config.touch()
@@ -109,83 +111,104 @@ def main():
     if args.fps <= 0:
         raise ValueError("fps debe ser positivo")
 
-    if args.new_obstacles is not None and obstacle_config.exists():
-        obstacle_config.unlink()
-        print(f"Se elimina la configuracion anterior: {obstacle_config}")
-
-    if not obstacle_config.exists():
-        print("Se genera una nueva configuracion valida de obstaculos.")
+    if args.new_obstacles is not None:
+        configs = sorted(configurations_dir.glob("obstacles*.txt"))
+        numbers = [
+            int(CONFIGURATION_PATTERN.fullmatch(config.name).group(1))
+            for config in configs
+            if CONFIGURATION_PATTERN.fullmatch(config.name)
+        ]
+        next_number = max(numbers, default=0) + 1
+        obstacle_config = configurations_dir / f"obstacles{next_number}.txt"
         generate_command = [
             str(executable), "0", "100", str(obstacle_config),
-            str(generated_dir / "configuration_init.txt"),
+            str(configurations_dir / f"configuration_init{next_number}.txt"),
         ]
-        if args.new_obstacles is not None:
-            generate_command.append(str(args.new_obstacles))
+        generate_command.append(str(args.new_obstacles))
         run(generate_command)
         generated_count = count_obstacles(obstacle_config)
-        if (
-            args.new_obstacles is not None
-            and generated_count != args.new_obstacles
-        ):
+        if generated_count != args.new_obstacles:
             raise RuntimeError(
                 "El ejecutable genero una cantidad inesperada de obstaculos: "
                 f"se esperaban {args.new_obstacles}, pero genero "
                 f"{generated_count}. Recompila el ejecutable."
             )
 
-    run(python_script("validate_config.py") + [str(obstacle_config)])
     run(python_script("validate_config.py") + [str(empty_config)])
+    configuration_files = sorted(
+        (
+            path for path in configurations_dir.glob("obstacles*.txt")
+            if path.is_file() and CONFIGURATION_PATTERN.fullmatch(path.name)
+        ),
+        key=lambda path: int(CONFIGURATION_PATTERN.fullmatch(path.name).group(1)),
+    )
+    if not configuration_files:
+        raise FileNotFoundError(
+            f"No se encontraron configuraciones en {configurations_dir}"
+        )
+    for config in configuration_files:
+        run(python_script("validate_config.py") + [str(config)])
 
     point_11_dir = output_dir / "point_1_1"
     point_12_dir = output_dir / "point_1_2"
     point_11_dir.mkdir(parents=True, exist_ok=True)
     point_12_dir.mkdir(parents=True, exist_ok=True)
 
-    run(
-        python_script("run_experiments.py")
-        + [
-            "--exe", str(executable),
-            "--config", str(empty_config),
-            "--n-values", *[str(value) for value in args.n_values],
-            "--repetitions", "10",
-            "--tmax", "30",
-            *(["--animate"] if args.animate else []),
-            "--fps", str(args.fps),
-            "--output-dir", str(point_11_dir),
-        ]
-    )
-    run(
-        python_script("analyze_experiments.py")
-        + [str(point_11_dir / "results.csv"),
-           "--output-dir", str(point_11_dir)]
-    )
+    all_configurations = [(0, empty_config)] + [
+        (
+            int(CONFIGURATION_PATTERN.fullmatch(config.name).group(1)),
+            config,
+        )
+        for config in configuration_files
+    ]
+    for config_number, config in all_configurations:
+        point_11_config_dir = point_11_dir / f"config{config_number}"
+        run(
+            python_script("run_experiments.py")
+            + [
+                "--exe", str(executable),
+                "--config", str(config),
+                "--n-values", *[str(value) for value in args.n_values],
+                "--repetitions", "10",
+                "--tmax", "30",
+                *(["--animate"] if args.animate else []),
+                "--fps", str(args.fps),
+                "--output-dir", str(point_11_config_dir),
+            ]
+        )
+        run(
+            python_script("analyze_experiments.py")
+            + [str(point_11_config_dir / "results.csv"),
+               "--output-dir", str(point_11_config_dir)]
+        )
 
-    run(
-        python_script("run_experiments.py")
-        + [
-            "--exe", str(executable),
-            "--config", str(empty_config), str(obstacle_config),
-            "--n-values", "100",
-            "--repetitions", "5",
-            "--tmax", "100",
-            *(["--animate"] if args.animate else []),
-            "--fps", str(args.fps),
-            "--output-dir", str(point_12_dir),
-        ]
-    )
-    run(
-        python_script("analyze_experiments.py")
-        + [str(point_12_dir / "results.csv"),
-           "--output-dir", str(point_12_dir),
-           "--diffusion-n", "100"]
-    )
+        point_12_config_dir = point_12_dir / f"config{config_number}"
+        run(
+            python_script("run_experiments.py")
+            + [
+                "--exe", str(executable),
+                "--config", str(config),
+                "--n-values", "100",
+                "--repetitions", "5",
+                "--tmax", "100",
+                *(["--animate"] if args.animate else []),
+                "--fps", str(args.fps),
+                "--output-dir", str(point_12_config_dir),
+            ]
+        )
+        run(
+            python_script("analyze_experiments.py")
+            + [str(point_12_config_dir / "results.csv"),
+               "--output-dir", str(point_12_config_dir),
+               "--diffusion-n", "100"]
+        )
 
     if not args.skip_competition:
         run(
             python_script("run_competition.py")
             + [
                 "--exe", str(executable),
-                "--config", str(obstacle_config),
+                "--configurations-dir", str(configurations_dir),
                 *(["--animate"] if args.animate else []),
                 "--fps", str(args.fps),
                 "--output-dir", str(output_dir / "competition"),
