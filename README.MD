@@ -202,14 +202,14 @@ Al ejecutar el pipeline completo, el gráfico `t90_by_configuration.png` se
 genera una sola vez en `generated/tp_results/point_1_2/` e incluye `mesa_vacia`
 y todas las configuraciones de obstáculos.
 
-Para comparar automáticamente varias configuraciones, crear los archivos
-`obstaclesX.txt` dentro de `generated/configurations/`, donde `X` es un
-número de configuración:
+Para comparar automáticamente varias configuraciones, crear archivos `.txt`
+dentro de `generated/configurations/`. El nombre de cada archivo puede ser
+arbitrario:
 
 ```text
-generated/configurations/obstacles1.txt
-generated/configurations/obstacles2.txt
-generated/configurations/obstacles3.txt
+generated/configurations/mesa_con_un_obstaculo.txt
+generated/configurations/mesa_con_dos_obstaculos.txt
+generated/configurations/mesa_con_tres_obstaculos.txt
 ```
 
 Luego ejecutar:

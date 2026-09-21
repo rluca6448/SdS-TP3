@@ -1,14 +1,10 @@
 import argparse
-import re
 import subprocess
 import sys
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CONFIGURATION_PATTERN = re.compile(r"obstacles(\d+)\.txt$")
-
-
 def run(command, cwd=ROOT):
     print("$", " ".join(str(part) for part in command))
     subprocess.run(command, cwd=cwd, check=True)
@@ -21,6 +17,13 @@ def python_script(name):
 def count_obstacles(config):
     with config.open(encoding="utf-8") as config_file:
         return sum(1 for line in config_file if line.strip())
+
+
+def configuration_files(configurations_dir):
+    return sorted(
+        path for path in configurations_dir.glob("*.txt")
+        if path.is_file() and not path.name.startswith("configuration_init")
+    )
 
 
 def main():
@@ -37,7 +40,7 @@ def main():
         "--configurations-dir",
         type=Path,
         default=ROOT / "generated" / "configurations",
-        help="carpeta con obstaclesX.txt",
+        help="carpeta con archivos de configuracion .txt",
     )
     parser.add_argument(
         "--n-values",
@@ -112,14 +115,11 @@ def main():
         raise ValueError("fps debe ser positivo")
 
     if args.new_obstacles is not None:
-        configs = sorted(configurations_dir.glob("obstacles*.txt"))
-        numbers = [
-            int(CONFIGURATION_PATTERN.fullmatch(config.name).group(1))
-            for config in configs
-            if CONFIGURATION_PATTERN.fullmatch(config.name)
-        ]
-        next_number = max(numbers, default=0) + 1
-        obstacle_config = configurations_dir / f"obstacles{next_number}.txt"
+        next_number = 1
+        obstacle_config = configurations_dir / f"configuration{next_number}.txt"
+        while obstacle_config.exists():
+            next_number += 1
+            obstacle_config = configurations_dir / f"configuration{next_number}.txt"
         generate_command = [
             str(executable), "0", "100", str(obstacle_config),
             str(configurations_dir / f"configuration_init{next_number}.txt"),
@@ -135,18 +135,12 @@ def main():
             )
 
     run(python_script("validate_config.py") + [str(empty_config)])
-    configuration_files = sorted(
-        (
-            path for path in configurations_dir.glob("obstacles*.txt")
-            if path.is_file() and CONFIGURATION_PATTERN.fullmatch(path.name)
-        ),
-        key=lambda path: int(CONFIGURATION_PATTERN.fullmatch(path.name).group(1)),
-    )
-    if not configuration_files:
+    configurations = configuration_files(configurations_dir)
+    if not configurations:
         raise FileNotFoundError(
-            f"No se encontraron configuraciones en {configurations_dir}"
+            f"No se encontraron archivos de configuracion en {configurations_dir}"
         )
-    for config in configuration_files:
+    for config in configurations:
         run(python_script("validate_config.py") + [str(config)])
 
     point_11_dir = output_dir / "point_1_1"
@@ -154,13 +148,7 @@ def main():
     point_11_dir.mkdir(parents=True, exist_ok=True)
     point_12_dir.mkdir(parents=True, exist_ok=True)
 
-    all_configurations = [(0, empty_config)] + [
-        (
-            int(CONFIGURATION_PATTERN.fullmatch(config.name).group(1)),
-            config,
-        )
-        for config in configuration_files
-    ]
+    all_configurations = [(0, empty_config)] + list(enumerate(configurations, 1))
     point_11_config_dir = point_11_dir / "config0"
     run(
         python_script("run_experiments.py")

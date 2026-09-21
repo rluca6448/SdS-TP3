@@ -8,7 +8,6 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CONFIGURATION_PATTERN = re.compile(r"obstacles(\d+)\.txt$")
 FU_PATTERN = re.compile(r"Fu\([^)]*\) = ([0-9.eE+-]+)")
 T90_PATTERN = re.compile(r"t90 = ([0-9.eE+-]+)")
 INITIALIZATION_RETRIES = 5
@@ -22,10 +21,9 @@ def count_obstacles(config):
 def configuration_files(configurations_dir):
     configurations = sorted(
         (
-            path for path in configurations_dir.glob("obstacles*.txt")
-            if path.is_file() and CONFIGURATION_PATTERN.fullmatch(path.name)
+            path for path in configurations_dir.glob("*.txt")
+            if path.is_file() and not path.name.startswith("configuration_init")
         ),
-        key=lambda path: int(CONFIGURATION_PATTERN.fullmatch(path.name).group(1)),
     )
     if not configurations:
         raise FileNotFoundError(
@@ -36,13 +34,11 @@ def configuration_files(configurations_dir):
 
 def generate_config(executable, configurations_dir, obstacle_count):
     configurations_dir.mkdir(parents=True, exist_ok=True)
-    numbers = [
-        int(CONFIGURATION_PATTERN.fullmatch(path.name).group(1))
-        for path in configurations_dir.glob("obstacles*.txt")
-        if CONFIGURATION_PATTERN.fullmatch(path.name)
-    ]
-    next_number = max(numbers, default=0) + 1
-    config = configurations_dir / f"obstacles{next_number}.txt"
+    next_number = 1
+    config = configurations_dir / f"configuration{next_number}.txt"
+    while config.exists():
+        next_number += 1
+        config = configurations_dir / f"configuration{next_number}.txt"
     initialization_file = configurations_dir / f"configuration_init{next_number}.txt"
     subprocess.run(
         [
@@ -198,8 +194,7 @@ def main():
         generate_config(args.exe, args.configurations_dir, args.new_obstacles)
     configurations = configuration_files(args.configurations_dir)
     for config in configurations:
-        match = CONFIGURATION_PATTERN.fullmatch(config.name)
-        config_number = int(match.group(1))
+        config_number = configurations.index(config) + 1
         run_configuration(
             args.exe,
             config,

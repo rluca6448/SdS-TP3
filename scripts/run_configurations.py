@@ -10,7 +10,6 @@ from statistics import mean, stdev
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CONFIGURATION_PATTERN = re.compile(r"obstacles(\d+)\.txt$")
 FU_PATTERN = re.compile(r"Fu\([^)]*\) = ([0-9.eE+-]+)")
 T90_PATTERN = re.compile(r"t90 = ([0-9.eE+-]+)")
 INITIALIZATION_RETRIES = 5
@@ -81,16 +80,6 @@ def configuration_name(config, configurations_dir):
     return config.stem
 
 
-def configuration_number(config):
-    match = CONFIGURATION_PATTERN.fullmatch(config.name)
-    if match is None:
-        raise ValueError(
-            f"Nombre de configuracion invalido: {config.name}. "
-            "Se esperaba obstaclesX.txt."
-        )
-    return int(match.group(1))
-
-
 def write_plot(summary_rows, output):
     try:
         import matplotlib.pyplot as plt
@@ -120,7 +109,7 @@ def write_plot(summary_rows, output):
 def main():
     parser = argparse.ArgumentParser(
         description=(
-            "Ejecuta cinco realizaciones para cada obstaclesX.txt encontrado "
+            "Ejecuta cinco realizaciones para cada archivo .txt encontrado "
             "en una carpeta de configuraciones"
         )
     )
@@ -158,14 +147,13 @@ def main():
 
     configs = sorted(
         (
-            path for path in configurations_dir.glob("obstacles*.txt")
-            if path.is_file() and CONFIGURATION_PATTERN.fullmatch(path.name)
+            path for path in configurations_dir.glob("*.txt")
+            if path.is_file() and not path.name.startswith("configuration_init")
         ),
-        key=configuration_number,
     )
     if not configs:
         raise FileNotFoundError(
-            f"No se encontraron archivos obstaclesX.txt en {configurations_dir}"
+            f"No se encontraron archivos de configuracion en {configurations_dir}"
         )
 
     output_dir.mkdir(parents=True, exist_ok=True)
