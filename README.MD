@@ -198,6 +198,10 @@ diffusion_vs_t90.png
 valor de `N`. Si todas las configuraciones usan el mismo `N`, la comparación
 correspondiente se genera en `t90_by_configuration.png`.
 
+Al ejecutar el pipeline completo, el gráfico `t90_by_configuration.png` se
+genera una sola vez en `generated/tp_results/point_1_2/` e incluye `mesa_vacia`
+y todas las configuraciones de obstáculos.
+
 Para comparar automáticamente varias configuraciones, crear los archivos
 `obstaclesX.txt` dentro de `generated/configurations/`, donde `X` es un
 número de configuración:

@@ -43,7 +43,7 @@ def main():
         "--n-values",
         nargs="+",
         type=int,
-        default=[25, 50, 100, 200],
+        default=[25, 50, 100, 200, 400],
         help="valores de N para el punto 1.1",
     )
     parser.add_argument(
@@ -161,27 +161,27 @@ def main():
         )
         for config in configuration_files
     ]
-    for config_number, config in all_configurations:
-        point_11_config_dir = point_11_dir / f"config{config_number}"
-        run(
-            python_script("run_experiments.py")
-            + [
-                "--exe", str(executable),
-                "--config", str(config),
-                "--n-values", *[str(value) for value in args.n_values],
-                "--repetitions", "10",
-                "--tmax", "30",
-                *(["--animate"] if args.animate else []),
-                "--fps", str(args.fps),
-                "--output-dir", str(point_11_config_dir),
-            ]
-        )
-        run(
-            python_script("analyze_experiments.py")
-            + [str(point_11_config_dir / "results.csv"),
-               "--output-dir", str(point_11_config_dir)]
-        )
+    point_11_config_dir = point_11_dir / "config0"
+    run(
+        python_script("run_experiments.py")
+        + [
+            "--exe", str(executable),
+            "--config", str(empty_config),
+            "--n-values", *[str(value) for value in args.n_values],
+            "--repetitions", "10",
+            "--tmax", "30",
+            *(["--animate"] if args.animate else []),
+            "--fps", str(args.fps),
+            "--output-dir", str(point_11_config_dir),
+        ]
+    )
+    run(
+        python_script("analyze_experiments.py")
+        + [str(point_11_config_dir / "results.csv"),
+           "--output-dir", str(point_11_config_dir)]
+    )
 
+    for config_number, config in all_configurations:
         point_12_config_dir = point_12_dir / f"config{config_number}"
         run(
             python_script("run_experiments.py")
@@ -200,8 +200,19 @@ def main():
             python_script("analyze_experiments.py")
             + [str(point_12_config_dir / "results.csv"),
                "--output-dir", str(point_12_config_dir),
-               "--diffusion-n", "100"]
+               "--diffusion-n", "100",
+               "--skip-configuration-plot"]
         )
+
+    summaries = [
+        str(point_12_dir / f"config{config_number}" / "summary.csv")
+        for config_number, _ in all_configurations
+    ]
+    run(
+        python_script("plot_configurations.py")
+        + ["--output", str(point_12_dir / "t90_by_configuration.png")]
+        + summaries
+    )
 
     if not args.skip_competition:
         run(
@@ -226,3 +237,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+ 

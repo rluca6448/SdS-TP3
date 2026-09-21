@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CONFIGURATION_PATTERN = re.compile(r"obstacles(\d+)\.txt$")
 FU_PATTERN = re.compile(r"Fu\([^)]*\) = ([0-9.eE+-]+)")
 T90_PATTERN = re.compile(r"t90 = ([0-9.eE+-]+)")
+INITIALIZATION_RETRIES = 5
 
 
 def count_obstacles(config):
@@ -80,13 +81,25 @@ def create_animation(state_file, config, animation_dir, fps):
 
 
 def run_once(executable, config, output, tmax):
+    command = [str(executable), str(tmax), "100", str(config), str(output)]
     start = time.perf_counter()
-    result = subprocess.run(
-        [str(executable), str(tmax), "100", str(config), str(output)],
-        stdout=subprocess.PIPE,
-        text=True,
-        check=True,
-    )
+    for attempt in range(1, INITIALIZATION_RETRIES + 1):
+        try:
+            result = subprocess.run(
+                command,
+                stdout=subprocess.PIPE,
+                text=True,
+                check=True,
+            )
+            break
+        except subprocess.CalledProcessError:
+            output.unlink(missing_ok=True)
+            if attempt == INITIALIZATION_RETRIES:
+                raise
+            print(
+                f"Reintentando {config.name} corrida "
+                f"({attempt}/{INITIALIZATION_RETRIES - 1})"
+            )
     runtime = time.perf_counter() - start
     fu_match = FU_PATTERN.search(result.stdout)
     t90_match = T90_PATTERN.search(result.stdout)

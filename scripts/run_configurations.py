@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CONFIGURATION_PATTERN = re.compile(r"obstacles(\d+)\.txt$")
 FU_PATTERN = re.compile(r"Fu\([^)]*\) = ([0-9.eE+-]+)")
 T90_PATTERN = re.compile(r"t90 = ([0-9.eE+-]+)")
+INITIALIZATION_RETRIES = 5
 
 
 def parse_result(stdout):
@@ -38,18 +39,30 @@ def validate_config(config):
 
 def run_once(executable, config, state_file, tmax):
     start = time.perf_counter()
-    completed = subprocess.run(
-        [
-            str(executable),
-            str(tmax),
-            "100",
-            str(config),
-            str(state_file),
-        ],
-        stdout=subprocess.PIPE,
-        text=True,
-        check=True,
-    )
+    command = [
+        str(executable),
+        str(tmax),
+        "100",
+        str(config),
+        str(state_file),
+    ]
+    for attempt in range(1, INITIALIZATION_RETRIES + 1):
+        try:
+            completed = subprocess.run(
+                command,
+                stdout=subprocess.PIPE,
+                text=True,
+                check=True,
+            )
+            break
+        except subprocess.CalledProcessError:
+            state_file.unlink(missing_ok=True)
+            if attempt == INITIALIZATION_RETRIES:
+                raise
+            print(
+                f"Reintentando {config.name} corrida "
+                f"({attempt}/{INITIALIZATION_RETRIES - 1})"
+            )
     runtime = time.perf_counter() - start
     fu_tmax, t90 = parse_result(completed.stdout)
     return runtime, fu_tmax, t90

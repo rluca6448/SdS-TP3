@@ -204,30 +204,7 @@ def create_plots(grouped_path, diffusion_path, output_dir):
     else:
         (output_dir / "t90_vs_n.png").unlink(missing_ok=True)
 
-    configuration_points = []
-    for configuration, rows in by_configuration.items():
-        valid = [row for row in rows if row["t90_mean"] not in ("", "None")]
-        if len(valid) == 1:
-            row = valid[0]
-            configuration_points.append((
-                configuration_label(configuration),
-                float(row["t90_mean"]),
-                float(row["t90_std"]),
-            ))
-
-    if configuration_points:
-        plt.figure()
-        labels = [point[0] for point in configuration_points]
-        values = [point[1] for point in configuration_points]
-        errors = [point[2] for point in configuration_points]
-        positions = list(range(len(labels)))
-        plt.errorbar(positions, values, yerr=errors, fmt="o")
-        plt.xticks(positions, labels, rotation=30, ha="right")
-        plt.ylabel("t90 promedio (s)")
-        plt.title("Comparacion de configuraciones")
-        plt.tight_layout()
-        plt.savefig(output_dir / "t90_by_configuration.png", dpi=200)
-        plt.close()
+    write_configuration_plot(grouped_rows, output_dir / "t90_by_configuration.png")
 
     diffusion_rows = list(csv.DictReader(diffusion_path.open(encoding="utf-8")))
     valid = [row for row in diffusion_rows if row["t90_mean"] not in ("", "None")]
@@ -244,11 +221,56 @@ def create_plots(grouped_path, diffusion_path, output_dir):
         plt.close()
 
 
+def write_configuration_plot(rows, output):
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:
+        print("matplotlib no esta instalado; se omite el grafico")
+        return
+
+    by_configuration = defaultdict(list)
+    for row in rows:
+        if row["t90_mean"] not in ("", "None"):
+            by_configuration[row["configuration"]].append(row)
+
+    configuration_points = [
+        (
+            configuration_label(configuration),
+            float(config_rows[0]["t90_mean"]),
+            float(config_rows[0]["t90_std"]),
+        )
+        for configuration, config_rows in by_configuration.items()
+        if len(config_rows) == 1
+    ]
+
+    if not configuration_points:
+        output.unlink(missing_ok=True)
+        return
+
+    plt.figure(figsize=(max(7, len(configuration_points) * 1.2), 5))
+    labels = [point[0] for point in configuration_points]
+    values = [point[1] for point in configuration_points]
+    errors = [point[2] for point in configuration_points]
+    positions = list(range(len(labels)))
+    plt.errorbar(positions, values, yerr=errors, fmt="o", capsize=4)
+    plt.xticks(positions, labels, rotation=30, ha="right")
+    plt.ylabel("t90 promedio (s)")
+    plt.title("Comparacion de configuraciones")
+    plt.tight_layout()
+    plt.savefig(output, dpi=200)
+    plt.close()
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("results", type=Path)
     parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--diffusion-n", type=int, default=100)
+    parser.add_argument(
+        "--skip-configuration-plot",
+        action="store_true",
+        help="no genera el grafico t90_by_configuration en este directorio",
+    )
     args = parser.parse_args()
 
     output_dir = args.output_dir or args.results.parent
@@ -261,7 +283,10 @@ def main():
     write_grouped_results(rows, grouped)
     write_presentation_summary(rows, presentation)
     write_diffusion_and_correlation(rows, diffusion, args.diffusion_n)
-    create_plots(grouped, diffusion, output_dir)
+    if args.skip_configuration_plot:
+        (output_dir / "t90_by_configuration.png").unlink(missing_ok=True)
+    else:
+        create_plots(grouped, diffusion, output_dir)
     print(f"summary = {grouped}")
     print(f"presentation_summary = {presentation}")
     print(f"diffusion = {diffusion}")

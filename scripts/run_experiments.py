@@ -9,6 +9,7 @@ from pathlib import Path
 
 FU_PATTERN = re.compile(r"Fu\([^)]*\) = ([0-9.eE+-]+)")
 T90_PATTERN = re.compile(r"t90 = ([0-9.eE+-]+)")
+INITIALIZATION_RETRIES = 5
 
 
 def parse_result(stdout):
@@ -92,12 +93,24 @@ def main():
                     ]
 
                     start = time.perf_counter()
-                    completed = subprocess.run(
-                        command,
-                        stdout=subprocess.PIPE,
-                        text=True,
-                        check=True,
-                    )
+                    for attempt in range(1, INITIALIZATION_RETRIES + 1):
+                        try:
+                            completed = subprocess.run(
+                                command,
+                                stdout=subprocess.PIPE,
+                                text=True,
+                                check=True,
+                            )
+                            break
+                        except subprocess.CalledProcessError:
+                            state_file.unlink(missing_ok=True)
+                            if attempt == INITIALIZATION_RETRIES:
+                                raise
+                            print(
+                                f"Reintentando {config.stem} N={particle_count} "
+                                f"corrida={replication} "
+                                f"({attempt}/{INITIALIZATION_RETRIES - 1})"
+                            )
                     runtime = time.perf_counter() - start
                     fu_tmax, t90 = parse_result(completed.stdout)
 
