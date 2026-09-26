@@ -188,8 +188,7 @@ def main():
             python_script("analyze_experiments.py")
             + [str(point_12_config_dir / "results.csv"),
                "--output-dir", str(point_12_config_dir),
-               "--diffusion-n", "100",
-               "--skip-configuration-plot"]
+               "--diffusion-n", "100"]
         )
 
     summaries = [

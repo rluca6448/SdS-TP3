@@ -21,7 +21,11 @@ def read_states(path):
             values = lines[index].split()
             if len(values) != 5:
                 raise ValueError(f"Estado invalido en {path}: {lines[index]}")
-            particles.append((float(values[0]), float(values[1])))
+            particles.append((
+                float(values[0]),
+                float(values[1]),
+                int(values[4]),
+            ))
             index += 1
         frames.append((time, particles))
 
@@ -38,7 +42,9 @@ def calculate_msd(frames):
             raise ValueError("La cantidad de particulas cambia entre estados")
         squared_displacements = [
             (x - x0) ** 2 + (y - y0) ** 2
-            for (x, y), (x0, y0) in zip(particles, initial_positions)
+            for (x, y, _), (x0, y0, _) in zip(
+                particles, initial_positions
+            )
         ]
         result.append((time, sum(squared_displacements) / len(squared_displacements)))
     return result

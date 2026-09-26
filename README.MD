@@ -163,6 +163,10 @@ python scripts/animate_states.py \
     --fps 5
 ```
 
+Durante la reproducción se informa cada conversión de partícula en la
+consola, se muestra `Ng/N` sobre la animación y se indica el `t90` al finalizar
+si se alcanzó el 90% de partículas usadas.
+
 Para guardar la animación como GIF:
 
 ```bash
@@ -192,15 +196,24 @@ runtime_vs_n.png
 t90_vs_n.png
 t90_by_configuration.png
 diffusion_vs_t90.png
+fu_vs_t.png
+msd_vs_time.png
 ```
 
 `t90_vs_n.png` sólo se genera cuando los resultados contienen más de un
 valor de `N`. Si todas las configuraciones usan el mismo `N`, la comparación
 correspondiente se genera en `t90_by_configuration.png`.
 
-Al ejecutar el pipeline completo, el gráfico `t90_by_configuration.png` se
-genera una sola vez en `generated/tp_results/point_1_2/` e incluye `mesa_vacia`
-y todas las configuraciones de obstáculos.
+Cada directorio de configuración genera además `fu_vs_t.png`, con
+`Fu(t)=Ng(t)/N` como promedio de sus realizaciones, y `msd_vs_time.png`, que muestra
+`<z^2>` en función del tiempo junto con el ajuste lineal. Las curvas promedio
+incluyen una banda de desvío estándar, una línea punteada en el `<t90>`
+promedio y la cantidad de realizaciones usadas. Al ejecutar el
+pipeline completo, `generated/tp_results/point_1_2/` contiene un único
+`diffusion_vs_t90.png` con un punto de color por configuración (D contra
+`<t90>`), un único `fu_vs_t.png` con todas las configuraciones y el gráfico
+`t90_by_configuration.png` con `mesa_vacia` y todas las configuraciones de
+obstáculos.
 
 Para comparar automáticamente varias configuraciones, crear archivos `.txt`
 dentro de `generated/configurations/`. El nombre de cada archivo puede ser

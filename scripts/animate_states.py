@@ -38,6 +38,17 @@ def read_animation_states(path):
     return frames
 
 
+def calculate_t90(frames):
+    particle_count = len(frames[0][1])
+    if particle_count == 0:
+        return None
+    for time, particles in frames:
+        used_count = sum(state == 0 for _, _, state in particles)
+        if used_count / particle_count >= 0.9:
+            return time
+    return None
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("states", type=Path)
@@ -106,14 +117,35 @@ def main():
         "",
         transform=axes.transAxes,
     )
+    last_used_count = sum(state == 0 for _, _, state in frames[0][1])
+    t90 = calculate_t90(frames)
+    final_label = (
+        f"t90 = {t90:.6g} s" if t90 is not None else "t90 no alcanzado"
+    )
+    t90_label = axes.text(
+        0.02,
+        0.97,
+        final_label,
+        transform=axes.transAxes,
+    )
 
     def update(frame_index):
+        nonlocal last_used_count
         time, particles = frames[frame_index]
+        used_count = sum(state == 0 for _, _, state in particles)
+        for particle_number in range(last_used_count + 1, used_count + 1):
+            print(
+                f"Conversion {particle_number}: "
+                f"t = {time:.6g} s"
+            )
+        last_used_count = used_count
         for patch, (x, y, state) in zip(particle_patches, particles):
             patch.center = (x, y)
             patch.set_color("blue" if state == 1 else "red")
-        time_label.set_text(f"t = {time:.6g} s")
-        return [*particle_patches, time_label]
+        time_label.set_text(
+            f"t = {time:.6g} s | Ng = {used_count}/{len(particles)}"
+        )
+        return [*particle_patches, time_label, t90_label]
 
     rendered = animation.FuncAnimation(
         figure,
@@ -125,9 +157,11 @@ def main():
 
     if args.output:
         rendered.save(args.output, writer="pillow", fps=args.fps)
+        print(final_label)
         print(f"animation = {args.output}")
     else:
         plt.show()
+        print(final_label)
 
 
 if __name__ == "__main__":
