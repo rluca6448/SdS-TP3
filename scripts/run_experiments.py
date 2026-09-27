@@ -1,5 +1,6 @@
 import argparse
 import csv
+import os
 import re
 import subprocess
 import sys
@@ -10,6 +11,7 @@ from pathlib import Path
 FU_PATTERN = re.compile(r"Fu\([^)]*\) = ([0-9.eE+-]+)")
 T90_PATTERN = re.compile(r"t90 = ([0-9.eE+-]+)")
 INITIALIZATION_RETRIES = 5
+MAX_PARALLEL_ANIMATIONS = os.cpu_count() or 4
 
 
 def parse_result(stdout):
@@ -21,9 +23,9 @@ def parse_result(stdout):
     )
 
 
-def create_animation(state_file, config, animation_dir, fps):
+def start_animation(state_file, config, animation_dir, fps):
     animation_file = animation_dir / state_file.with_suffix(".gif").name
-    subprocess.run(
+    process = subprocess.Popen(
         [
             sys.executable,
             str(Path(__file__).with_name("animate_states.py")),
@@ -32,8 +34,48 @@ def create_animation(state_file, config, animation_dir, fps):
             "--output", str(animation_file),
             "--fps", str(fps),
         ],
-        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
     )
+    return process, state_file
+
+
+def _reap(pending, finished):
+    for process, state_file in finished:
+        _, stderr = process.communicate()
+        if process.returncode != 0:
+            print(
+                f"\nError generando animacion para {state_file.name}:\n{stderr}",
+                file=sys.stderr,
+            )
+        pending.remove((process, state_file))
+
+
+def wait_for_slot(pending, max_parallel):
+    while len(pending) >= max_parallel:
+        finished = [item for item in pending if item[0].poll() is not None]
+        if not finished:
+            time.sleep(0.2)
+            continue
+        _reap(pending, finished)
+
+
+def wait_for_all_animations(pending):
+    total = len(pending)
+    if total == 0:
+        return
+    completed = 0
+    print(f"Generando animaciones... (0/{total})", end="\r", flush=True)
+    while pending:
+        finished = [item for item in pending if item[0].poll() is not None]
+        if not finished:
+            time.sleep(0.2)
+            continue
+        completed += len(finished)
+        _reap(pending, finished)
+        print(f"Generando animaciones... ({completed}/{total})", end="\r", flush=True)
+    print(f"Animaciones listas ({total}/{total})" + " " * 10)
 
 
 def main():
@@ -65,6 +107,8 @@ def main():
     if args.animate:
         animation_dir.mkdir(parents=True, exist_ok=True)
     results_path = args.output_dir / "results.csv"
+
+    pending_animations = []
 
     with results_path.open("w", newline="", encoding="utf-8") as results_file:
         fieldnames = [
@@ -126,7 +170,12 @@ def main():
                     })
                     results_file.flush()
                     if args.animate:
-                        create_animation(state_file, config, animation_dir, args.fps)
+                        wait_for_slot(pending_animations, MAX_PARALLEL_ANIMATIONS)
+                        pending_animations.append(
+                            start_animation(state_file, config, animation_dir, args.fps)
+                        )
+
+    wait_for_all_animations(pending_animations)
 
 
 if __name__ == "__main__":

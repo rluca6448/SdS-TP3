@@ -133,11 +133,13 @@ def main():
         nonlocal last_used_count
         time, particles = frames[frame_index]
         used_count = sum(state == 0 for _, _, state in particles)
+        """
         for particle_number in range(last_used_count + 1, used_count + 1):
             print(
                 f"Conversion {particle_number}: "
                 f"t = {time:.6g} s"
             )
+        """
         last_used_count = used_count
         for patch, (x, y, state) in zip(particle_patches, particles):
             patch.center = (x, y)
