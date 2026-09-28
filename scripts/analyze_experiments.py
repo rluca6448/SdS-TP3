@@ -448,7 +448,6 @@ def create_plots(grouped_path, diffusion_path, output_dir, rows):
         )
     plt.xlabel("N")
     plt.ylabel("Tiempo de ejecucion (s)")
-    plt.xscale("log")
     plt.yscale("log")
     plt.legend()
     plt.tight_layout()
