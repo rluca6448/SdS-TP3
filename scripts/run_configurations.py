@@ -125,7 +125,7 @@ def main():
         default=None,
         help="directorio de resultados; por defecto, configurations/results",
     )
-    parser.add_argument("--repetitions", type=int, default=5)
+    parser.add_argument("--repetitions", type=int, default=10)
     parser.add_argument("--tmax", type=int, default=100)
     args = parser.parse_args()
 

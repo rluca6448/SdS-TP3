@@ -83,7 +83,7 @@ def main():
     parser.add_argument("--exe", required=True, type=Path)
     parser.add_argument("--config", required=True, nargs="+", type=Path)
     parser.add_argument("--n-values", nargs="+", type=int, default=[100])
-    parser.add_argument("--repetitions", type=int, default=5)
+    parser.add_argument("--repetitions", type=int, default=10)
     parser.add_argument("--tmax", type=int, default=100)
     parser.add_argument("--output-dir", type=Path, default=Path("generated/experiments"))
     parser.add_argument(

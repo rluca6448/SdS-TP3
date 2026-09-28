@@ -177,7 +177,7 @@ def main():
                 "--exe", str(executable),
                 "--config", str(config),
                 "--n-values", "100",
-                "--repetitions", "5",
+                "--repetitions", "10",
                 "--tmax", "100",
                 *(["--animate"] if args.animate else []),
                 "--fps", str(args.fps),

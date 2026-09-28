@@ -337,27 +337,16 @@ void Simulation::run(int maxTime, io::StateWriter& writer) {
         initialize();
     }
 
+    const double tmax = static_cast<double>(maxTime);
+
     writer.writeStateImmediately(particles, currentTime);
 
-    while (currentTime < static_cast<double>(maxTime)) {
-        const types::Event event = queue.peek();
-        if (event.time > static_cast<double>(maxTime)) {
-            const double deltaTime = static_cast<double>(maxTime) - currentTime;
-            for (auto& particle : particles) {
-                particle.advance(deltaTime);
-            }
-            currentTime = static_cast<double>(maxTime);
-            writer.writeStateImmediately(particles, currentTime);
-            break;
-        }
-
+    while (queue.peek().time <= tmax) {
         step();
         writer.writeState(particles, currentTime);
     }
 
-    if (currentTime == static_cast<double>(maxTime) || t90.has_value()) {
-        writer.writeStateImmediately(particles, currentTime);
-    }
+    writer.writeStateImmediately(particles, currentTime);
 }
 
 void Simulation::checkGoal(types::Particle& particle) {

@@ -66,6 +66,7 @@ def main():
         import matplotlib.animation as animation
         import matplotlib.pyplot as plt
         from matplotlib.patches import Circle, Rectangle
+        from matplotlib.transforms import blended_transform_factory
     except ImportError as error:
         raise SystemExit(
             "Este script requiere matplotlib: pip install matplotlib"
@@ -85,7 +86,16 @@ def main():
     axes.set_ylim(0, WIDTH)
     axes.set_xlabel("x (m)")
     axes.set_ylabel("y (m)")
-    axes.set_title("Billar-Metegol")
+
+    # Deja espacio arriba de los ejes para el titulo y las dos lineas de texto,
+    # asi no se pisan entre si ni con el borde superior del tablero.
+    figure.subplots_adjust(top=0.87)
+    figure.suptitle("Billar-Metegol", y=0.97)
+
+    # x queda anclado a los ejes (como antes, en 0.02) pero la altura se fija
+    # en coordenadas de la figura, para que no dependa del aspect ratio de
+    # los ejes ni se acerque al titulo o al borde del tablero.
+    label_transform = blended_transform_factory(axes.transAxes, figure.transFigure)
 
     axes.add_patch(Rectangle((0, 0), LENGTH, WIDTH, fill=False, linewidth=2))
     axes.plot(
@@ -111,35 +121,18 @@ def main():
     for patch in particle_patches:
         axes.add_patch(patch)
 
-    time_label = axes.text(
-        0.02,
-        1.02,
-        "",
-        transform=axes.transAxes,
-    )
+    time_label = figure.text(0.02, 0.90, "", transform=label_transform)
     last_used_count = sum(state == 0 for _, _, state in frames[0][1])
     t90 = calculate_t90(frames)
     final_label = (
         f"t90 = {t90:.6g} s" if t90 is not None else "t90 no alcanzado"
     )
-    t90_label = axes.text(
-        0.02,
-        0.97,
-        final_label,
-        transform=axes.transAxes,
-    )
+    t90_label = figure.text(0.02, 0.845, final_label, transform=label_transform)
 
     def update(frame_index):
         nonlocal last_used_count
         time, particles = frames[frame_index]
         used_count = sum(state == 0 for _, _, state in particles)
-        """
-        for particle_number in range(last_used_count + 1, used_count + 1):
-            print(
-                f"Conversion {particle_number}: "
-                f"t = {time:.6g} s"
-            )
-        """
         last_used_count = used_count
         for patch, (x, y, state) in zip(particle_patches, particles):
             patch.center = (x, y)
@@ -154,7 +147,7 @@ def main():
         update,
         frames=len(frames),
         interval=1000 / max(1, args.fps),
-        blit=True,
+        blit=False,
     )
 
     if args.output:
